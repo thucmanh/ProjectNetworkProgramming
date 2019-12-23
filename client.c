@@ -65,7 +65,7 @@ int VIEWSIZE = 15;
 // tictactoe game
 #define SIGNAL_TICTACTOE "SIGNAL_TICTACTOE"
 #define SIGNAL_TTT_RESULT "SIGNAL_TTT_RESULT"
-// #define SIGNAL_TICTACTOE_AI "SIGNAL_TICTACTOE_AI"
+#define SIGNAL_TICTACTOE_AI "SIGNAL_TICTACTOE_AI"
 
 // tictactoe ranking
 #define SIGNAL_TTT_RANKING "SIGNAL_TTT_RANKING"
@@ -99,7 +99,7 @@ Kết nối với server
 int connectToServer(){
   isCommunicating = 1; // tao ket noi
   int errorConnect;
-
+  recieved = -1;
   //Step 1: Construct socket
   if((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1){
     strcpy(error,"Error Socket!!!");
@@ -111,21 +111,34 @@ int connectToServer(){
   server_addr.sin_port = htons(PORT);
   server_addr.sin_addr.s_addr = inet_addr(serverAddress);
 
+  // set timeout
+  struct timeval timeout;
+  timeout.tv_sec = 20; // after 20 seconds connect will timeout
+  timeout.tv_usec = 0;
+  if (setsockopt (sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0){
+    return -1;
+  }
+  else if (setsockopt (sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0){
+    return -1;
+  }
+  
   //Step 3: Request to connect server
   if( connect(sock, (struct sockaddr*)&server_addr, sizeof(struct sockaddr)) == -1){
     errorConnect = errno;
-    sprintf(error,"Error! Can not connect to server! %s",strerror(errorConnect));		
+    sprintf(error,"Error! Can not connect to server! %s",strerror(errorConnect));   
     return -1;
   }
-
   //Step 4: Communicate with server
   send(sock, send_msg, strlen(send_msg), 0);
   recieved = recv(sock, recv_msg, BUFF_SIZE, 0);
   recv_msg[recieved] = '\0';
-  
   strcpy(send_msg, SIGNAL_CLOSE);
   send(sock, send_msg, strlen(send_msg), 0);
   close(sock);
+  if(recieved == -1){
+    printf("\nError: Timeout!!!\n");
+    return -1;
+  }
   isCommunicating = 0; // ngat ket noi
   return 0;
 }
@@ -160,7 +173,6 @@ int menuSignin(){
       }
     }
     printf("Username: ");
-    // gets(user);
     fgets(user, BUFF_SIZE, stdin);
     user[strlen(user)-1] = '\0';
 
@@ -171,15 +183,22 @@ int menuSignin(){
     sprintf(send_msg, "%s#%s#%s", SIGNAL_CHECKLOGIN, user, pass);
     if(connectToServer() == 0){    
       str = strtok(recv_msg, token);
-      if(strcmp(str, SIGNAL_OK) == 0)
-        break;    
+      if(strcmp(str, SIGNAL_OK) == 0){
+        // break;
+        return 0;
+      }
       else if(strcmp(str, SIGNAL_ERROR) == 0){
       	str = strtok(NULL, token);
       	strcpy(error, str);
+        return -1;
       }
-    }    
+    }
+    else {
+      printf("Error! Cant connect to server!\n");
+      return -1;
+    }
   }  
-  return 0;
+  // return 0;
 }
 
 /*
@@ -230,6 +249,10 @@ int menuRegister(){
       	  strcpy(error, str);
       	}
       }
+      else {
+        printf("Error! Cant connect to server!\n");
+        return -1;
+      }
     }
     else{
       strcpy(error, "Password does not match");
@@ -241,7 +264,8 @@ int menuRegister(){
 /*
 Hiển thị chọn login, create
 */
-int menuStart(){  
+int menuStart(){
+  int checkSignin = 0, checkRegister = 0;
   error[0] = '\0';  
   while(1){
     clearScreen();
@@ -258,12 +282,18 @@ int menuStart(){
     scanf("%c", &choice);
     while(getchar() != '\n');
     if(choice == '1'){
-      if(menuSignin() == 0)
+      checkSignin = menuSignin();
+      if( checkSignin == 0){
         break;
+      } else if( checkSignin == -1)
+        return -1;
     }
     else if(choice == '2'){
-      if(menuRegister() == 0)
+      checkRegister = menuRegister();
+      if(checkRegister == 0)
         break;
+      else if( checkRegister == -1)
+        return -1;
     }
     else if(choice == '3') return -1;
     else sprintf(error,"No option %c", choice);
@@ -324,12 +354,69 @@ int menuCaroGame(){
       	  strcpy(error, str);
       	}
       }
+      else {
+        printf("Error! Cant connect to server!\n");
+      }
     }
     else{
       sprintf(error, "Size %d | size error!!!", size);
     }
   }  
   return 0;
+}
+
+/*
+TicTacToe AI, Có kết nối với server, để sử dụng copy vào file client.c
+*/
+int handleTicTacToeAI( char *user) {
+  char *str;
+  int board[9] = {0,0,0,0,0,0,0,0,0};
+  //computer squares are 1, player squares are -1.
+  printf("Computer: O, You: X\n");
+  printf("You want to Play (1)st or (2)nd: ");
+  player=0;
+  scanf("%d",&player);
+  printf("\n");
+  
+  for(turn = 0; turn < 9 && win(board) == 0; ++turn) {
+    if( turn != 0 ) showFunGame(user, player);
+
+    if((turn+player) % 2 == 0){
+      computerMove(board);
+      sprintf(send_msg, "%s#%s", SIGNAL_TICTACTOE_AI, user);
+      if(connectToServer() == 0){    
+        str = strtok(recv_msg, token);
+        if(strcmp(str, SIGNAL_OK) == 0){
+          str = strtok(NULL, token);
+          strcpy(id, str);
+        }
+      }
+      else {
+        printf("Error! Cant connect to server!\n");
+      }
+    }
+    else {
+      draw(board);
+      player_move(board);
+    }
+    if( turn == 0 ) write(1,"\E[H\E[2J", 7);
+  }
+
+  switch(win(board)) {
+    case 0:
+      printf("\033[0;37m");
+      printf("A draw. How droll.\n");
+      return 0;
+    case 1:
+      draw(board);
+      printf("\033[0;37m");
+      printf("You lose.\n");
+      return 1;
+    case -1:
+      printf("\033[0;37m");
+      printf("You win. Inconceivable!\n");
+      return -1;
+  }
 }
 
 /*
@@ -370,7 +457,8 @@ int handleTicTacToeGame(){
         str = strtok(NULL, token);
         strcpy(id, str);
 
-        resultTTT = handleTicTacToe(user); // 0 hòa, 1 thua, -1 thắng
+        // resultTTT = handleTicTacToe(user); // 0 hòa, 1 thua, -1 thắng
+        resultTTT = handleTicTacToeAI(user);
         sprintf(send_msg, "%s#%s#%d", SIGNAL_TTT_RESULT, id, resultTTT);
         if(connectToServer() == 0){    
           str = strtok(recv_msg, token);
@@ -404,10 +492,16 @@ int handleTicTacToeGame(){
         strcpy(error, str);
       }
     }
+    else {
+      printf("Error! Cant connect to server!\n");
+    }
   }
   return 0;
 }
 
+/*
+Xử lý phần xếp hạng caro game
+*/
 int handleCaroRanking(){
   char* str;
   error[0] = '\0';
@@ -462,6 +556,9 @@ int handleCaroRanking(){
   else return 1;
 }
 
+/*
+Xử lý phần xếp hạng tictactoe game
+*/
 int handleTicTacToeRanking(){
   char* str;
   error[0] = '\0';
@@ -606,8 +703,12 @@ int viewLog(){
       strcpy(error, str);
       return -1;
     }
+    printLog(usernameLog); // in log
   }
-  printLog(usernameLog); // in log
+  else {
+    printf("Error! Cant connect to server!\n");
+  }
+  
   printf("Press 'q' to quit: ");
   choice = getchar();
   while(getchar() != '\n');
@@ -664,7 +765,7 @@ int handleCaroGame(){
   while(1){
     clearScreen();
     printf("\033[0;37m----------CARO GAME----------\n");
-    printf("\033[0;33m\tUsername: %s - GameID = %s\033[0;37m\n", user, id);    
+    printf("\033[0;33m\tUsername: %s - GameID = %s\033[0;37m\n", user, id); 
     printf("\tPress w,a,s,d to move \n");
     printf("\tPress enter to select\n");
     printf("\tPress 'q' to quit\n");

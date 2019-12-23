@@ -49,7 +49,7 @@ Library of socket
 // tictactoe game
 #define SIGNAL_TICTACTOE "SIGNAL_TICTACTOE"
 #define SIGNAL_TTT_RESULT "SIGNAL_TTT_RESULT"
-// #define SIGNAL_TICTACTOE_AI "SIGNAL_TICTACTOE_AI"
+#define SIGNAL_TICTACTOE_AI "SIGNAL_TICTACTOE_AI"
 
 // tictactoe ranking
 #define SIGNAL_TTT_RANKING "SIGNAL_TTT_RANKING"
@@ -96,7 +96,7 @@ void updateTTTResult( char* id){
     updateFileTTTRanking();
   }
 
-  traversingList();
+  // traversingList();
   TTTroot = NULL; cur = NULL; new = NULL; tmp = NULL;
 }
 
@@ -135,7 +135,7 @@ void updateCaroRanking( char* user, int winOrLost){
     updateFileCaroRanking();
   }
 
-  traversingListCaro();
+  // traversingListCaro();
   caroroot = NULL; carocur = NULL; caronew = NULL; tmp = NULL;
 }
 
@@ -149,6 +149,7 @@ int handleDataFromClient(int fd){
 
   recieved = recv( fd, recv_msg, BUFF_SIZE, 0);
   recv_msg[recieved] = '\0';
+  // printf("%s\n", recv_msg);
   str = strtok( recv_msg, token);
   if( strcmp(str, SIGNAL_CLOSE) == 0){
     FD_CLR(fd, &master); // Clears the bit for the file descriptor fd in the file descriptor set fdset.
@@ -173,7 +174,7 @@ int handleDataFromClient(int fd){
     pass = strtok(NULL, token);
     if(isValid(user, pass)) strcpy(send_msg, SIGNAL_OK);
     else sprintf( send_msg,"%s#%s", SIGNAL_ERROR, "Username or Password is incorrect");
-    
+    // while(1); // test timeout
     send(fd, send_msg, strlen(send_msg), 0);
   }
   else if(strcmp(str, SIGNAL_CARO_NEWGAME) == 0){
@@ -199,14 +200,14 @@ int handleDataFromClient(int fd){
     sprintf(send_msg,"%s#%s", SIGNAL_OK, id);
     send(fd, send_msg, strlen(send_msg), 0);
   }
-  /*else if(strcmp(str, SIGNAL_TICTACTOE_AI) == 0){
+  else if(strcmp(str, SIGNAL_TICTACTOE_AI) == 0){
     // Handle tic-tac-toe
     str = strtok(NULL, token);
     id = str;
     printf("TicTacToe game with id = %s, computer is processing...\n", id);
     sprintf(send_msg,"%s#%s", SIGNAL_OK, id);
     send(fd, send_msg, strlen(send_msg), 0);
-  }*/
+  }
   else if(strcmp(str, SIGNAL_TTT_RESULT) == 0){ // 0 hòa, 1 thua, -1 thắng
     // Handle tic-tac-toe result
     str = strtok(NULL, token);
@@ -354,19 +355,18 @@ int main(int argc, char *argv[]){
   PORT = atoi(argv[1]);
 
   int sock, connected, sin_size, true = 1;
-  int fdmax, i;
+  int fdmax, i, rc;
   fd_set read_fds;
   
   FD_ZERO(&master);
   FD_ZERO(&read_fds);
   initList();
   
-  //Step 1: Construct a TCP socket to listen connection request
+  // Step 1: Construct a TCP socket to listen connection request
   if((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     perror("Socket error\n");
     exit(-1);
   }
-  
   if(setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int)) == -1) {
     perror("Setsockopt error\n");
     exit(-2);
@@ -377,7 +377,7 @@ int main(int argc, char *argv[]){
   server_addr.sin_port = htons(PORT);     
   server_addr.sin_addr.s_addr = INADDR_ANY; 
   bzero(&(server_addr.sin_zero),8); 
-	
+  
   if (bind(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1) {
     perror("Unable to bind\n");
     exit(-3);
@@ -390,38 +390,46 @@ int main(int argc, char *argv[]){
   }  
   printf("FUNGAME waiting for client on port %d\n", PORT);
   fflush(stdout);
-	
+  
   FD_SET(sock, &master);
   fdmax = sock;
 
+  // Set timeout
+  struct timeval timeout;
+  timeout.tv_sec  = 1000;  // after 1000 seconds will timeout
+  timeout.tv_usec = 0;
   //Step 4: Communicate with clients
   while(1){
     read_fds = master;
-    if(select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1){
-      perror("select error!\n");
-      exit(-5);
+    rc = select(fdmax + 1, &read_fds, NULL, NULL, &timeout);
+    if( rc == -1){
+      perror("select() error!\n");
+      exit(-6);
     }
-    
+    else if (rc == 0){
+     printf("  select() timed out. End program.\n");
+     exit(-5);
+    }
     for(i = 0; i <= fdmax; i++){
       if(FD_ISSET(i, &read_fds)){
-      	if(i == sock){
-      	  sin_size = sizeof(struct sockaddr_in);
-      	  connected = accept(sock, (struct sockaddr*)&client_addr, &sin_size);
-      	  if(connected == -1){
-      	    perror("accept error!\n");
-      	    exit(-6);
-      	  }
-      	  else{
-      	    FD_SET(connected, &master);
-      	    if(connected > fdmax)
-      	      fdmax = connected;
-      	    printf("Got a connection from (%s , %d) with fd = %d\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port), connected);
-      	    handleDataFromClient(connected);
-      	  }
-      	}
-      	else{
-      	  handleDataFromClient(i);
-      	}
+        if(i == sock){
+          sin_size = sizeof(struct sockaddr_in);
+          connected = accept(sock, (struct sockaddr*)&client_addr, &sin_size);
+          if(connected == -1){
+            perror("accept error!\n");
+            exit(-7);
+          }
+          else{
+            FD_SET(connected, &master);
+            if(connected > fdmax)
+              fdmax = connected;
+            printf("Got a connection from (%s , %d) with fd = %d\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port), connected);
+            handleDataFromClient(connected);
+          }
+        }
+        else{
+          handleDataFromClient(i);
+        }
       }
     }
   }
