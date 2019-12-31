@@ -61,8 +61,8 @@ fd_set master;
 char send_msg[BUFF_SIZE] , recv_msg[BUFF_SIZE];
 
 // server variable
-char token[] = "#";
-char* str;
+char token[] ="#";
+char *str;
 int tttResult;
 
 /*
@@ -153,7 +153,7 @@ int handleDataFromClient(int fd){
   str = strtok( recv_msg, token);
   if( strcmp(str, SIGNAL_CLOSE) == 0){
     FD_CLR(fd, &master); // Clears the bit for the file descriptor fd in the file descriptor set fdset.
-    printf("Close connection from fd = %d\n", fd);    
+    printf("Close connection from fd = %d\n", fd );    
   }
   else if(strcmp(str, SIGNAL_CREATEUSER) == 0){
     // Create new user
@@ -166,7 +166,7 @@ int handleDataFromClient(int fd){
       sprintf(send_msg, SIGNAL_OK);
     }
 
-    send(fd, send_msg, strlen(send_msg), 0);
+    send( fd, send_msg, strlen(send_msg), 0);
   }
   else if( strcmp(str, SIGNAL_CHECKLOGIN) == 0){   
     // Login
@@ -179,18 +179,15 @@ int handleDataFromClient(int fd){
   }
   else if(strcmp(str, SIGNAL_CARO_NEWGAME) == 0){
     // Play new game
-    //get size
-    str = strtok(NULL, token);
+    str = strtok(NULL, token); //get size
     recieved = atoi(str);
-    //get user
-    str = strtok(NULL, token);
-    //get id game
-    id = addInfo(inet_ntoa(client_addr.sin_addr), recieved, str);
+    str = strtok(NULL, token); //get user
+    id = addInfo(inet_ntoa(client_addr.sin_addr), recieved, str); //get id game
     printf("Caro game with id = %s\n", id);
     printf("Caro Game Info: ");
-    printInfo(getInfo(id));
-    sprintf(send_msg,"%s#%s", SIGNAL_OK, id);
-    send(fd, send_msg, strlen(send_msg), 0);
+    printInfo( getInfo(id) );
+    sprintf( send_msg,"%s#%s", SIGNAL_OK, id);
+    send( fd, send_msg, strlen(send_msg), 0);
   }
   else if(strcmp(str, SIGNAL_TICTACTOE) == 0){
     // Handle tic-tac-toe
@@ -198,7 +195,7 @@ int handleDataFromClient(int fd){
     id = str;
     printf("TicTacToe game with id = %s\n", id);
     sprintf(send_msg,"%s#%s", SIGNAL_OK, id);
-    send(fd, send_msg, strlen(send_msg), 0);
+    send( fd, send_msg, strlen(send_msg), 0);
   }
   else if(strcmp(str, SIGNAL_TICTACTOE_AI) == 0){
     // Handle tic-tac-toe
@@ -206,7 +203,7 @@ int handleDataFromClient(int fd){
     id = str;
     printf("TicTacToe game with id = %s, computer is processing...\n", id);
     sprintf(send_msg,"%s#%s", SIGNAL_OK, id);
-    send(fd, send_msg, strlen(send_msg), 0);
+    send( fd, send_msg, strlen(send_msg), 0);
   }
   else if(strcmp(str, SIGNAL_TTT_RESULT) == 0){ // 0 hòa, 1 thua, -1 thắng
     // Handle tic-tac-toe result
@@ -221,8 +218,8 @@ int handleDataFromClient(int fd){
     printf("TicTacToe game with id = %s, Result: %s\n", id, resultString);
     // xu li file TTTranking, update file
     updateTTTResult(id);
-    sprintf(send_msg,"%s#%s", SIGNAL_OK, id);
-    send(fd, send_msg, strlen(send_msg), 0);
+    sprintf( send_msg,"%s#%s", SIGNAL_OK, id);
+    send( fd, send_msg, strlen(send_msg), 0);
   }
   else if(strcmp(str, SIGNAL_TTT_RANKING) == 0){
     // Handle ttt ranking
@@ -364,11 +361,11 @@ int main(int argc, char *argv[]){
   
   // Step 1: Construct a TCP socket to listen connection request
   if((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-    perror("Socket error\n");
+    perror("Socket Error!!!\n");
     exit(-1);
   }
   if(setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int)) == -1) {
-    perror("Setsockopt error\n");
+    perror("Setsockopt error!!!\n");
     exit(-2);
   }
   

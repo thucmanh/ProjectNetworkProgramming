@@ -1,9 +1,9 @@
 #include <stdio.h>
-#include<stdlib.h>
-#include<string.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
-#include<time.h>
-#include"linklist.h"
+#include <time.h>
+#include "linklist.h"
 
 void getTime(char* str){
   struct tm* now = NULL;
@@ -108,22 +108,4 @@ void printInfo(ClientInfo* i){
   if(i != NULL)
     printf("id= %s user = %s addr=%s size=%d log=%s\n", i->id, i->user, i->address, i->size, i->logfile);
 }
-
-/*
-main(){ 
-  int n;
-  char* id[3];
-  initList();
-  printf("%s\n",id[0] = addInfo("127.0.0.1", 5, "asd"));
-  printf("%s\n",id[1] = addInfo("127.0.0.1", 6, "qwe"));
-  printf("%s\n",id[2] = addInfo("127.0.0.1", 7, "zxc"));
-  for(n = 0; n < 3; n++){
-    printInfo(getInfo(id[n]));    
-  } 
-  removeInfo(id[2]);
-  for(n = 0; n < 3; n++){
-    printInfo(getInfo(id[n]));    
-  } 
-}
-*/
 

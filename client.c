@@ -78,12 +78,11 @@ char send_msg[BUFF_SIZE], recv_msg[BUFF_SIZE];
 
 // client variable
 int status; // status of fungame
-char choice;
+char choice, token[] = "#";
 char error[100], user[100], id[30];
-char token[] = "#";
 
 // draw table
-char* table;
+char *table;
 int size, playerTurn, col, row;
 int viewC = 0, viewR = 0;
 
@@ -101,7 +100,7 @@ int connectToServer(){
   int errorConnect;
   recieved = -1;
   //Step 1: Construct socket
-  if((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1){
+  if( (sock = socket(AF_INET, SOCK_STREAM, 0)) == -1){
     strcpy(error,"Error Socket!!!");
     return -1;
   }
@@ -132,7 +131,7 @@ int connectToServer(){
   send(sock, send_msg, strlen(send_msg), 0);
   recieved = recv(sock, recv_msg, BUFF_SIZE, 0);
   recv_msg[recieved] = '\0';
-  strcpy(send_msg, SIGNAL_CLOSE);
+  strcpy(send_msg, SIGNAL_CLOSE); // gui tin hieu ngat ket noi
   send(sock, send_msg, strlen(send_msg), 0);
   close(sock);
   if(recieved == -1){
@@ -156,8 +155,7 @@ int menuSignin(){
     printf("---------------------------\n");
     if(error[0] != '\0'){
       printf("Error: %s!\n", error);
-      printf("Do you want to try again? (y or n)\n");
-      printf("Your choice: ");
+      printf("Do you want to try again?(y or n): ");
       choice = getchar();
       while(getchar() != '\n');
       if(choice=='n' || choice=='N'){
@@ -190,7 +188,7 @@ int menuSignin(){
       else if(strcmp(str, SIGNAL_ERROR) == 0){
       	str = strtok(NULL, token);
       	strcpy(error, str);
-        return -1;
+        return -2;
       }
     }
     else {
@@ -214,13 +212,12 @@ int menuRegister(){
     printf("---------------------------\n");
     if(error[0] != '\0'){
       printf("Error: %s!\n", error);
-      printf("Do you want to try again? (y or n)\n");
-      printf("Your choice: ");
+      printf("Do you want to try again?(y or n): ");
       choice = getchar();
       while(getchar() != '\n');
       if(choice =='n' || choice =='N'){
       	error[0] = '\0';
-      	return -1;
+      	return -2;
       }
       else if(choice !='y' && choice !='Y')
         continue;
@@ -316,8 +313,7 @@ int menuCaroGame(){
     printf("---------------------------\n");
     if(error[0] != '\0'){
       printf("Error: %s!\n", error);
-      printf("Do you want to try again? (y or n)\n");
-      printf("Your choice: ");
+      printf("Do you want to try again? (y or n): ");
       choice = getchar();
       while(getchar() != '\n');
       if(choice =='n' || choice =='N'){
@@ -434,8 +430,7 @@ int handleTicTacToeGame(){
     printf("---------------------------\n");
     if(error[0] != '\0'){
       printf("Error: %s!\n", error);
-      printf("Do you want to try again? (y or n)\n");
-      printf("Your choice: ");
+      printf("Do you want to try again? (y or n): ");
       choice = getchar();
       while(getchar() != '\n');
       if(choice == 'n' || choice == 'N'){
@@ -465,8 +460,7 @@ int handleTicTacToeGame(){
           if(strcmp(str, SIGNAL_OK) == 0){
             str = strtok(NULL, token);
             strcpy(id, str);
-            printf("Do you want to play again? (y or n)\n");
-            printf("Your choice: ");
+            printf("Do you want to play again? (y or n): ");
             while(getchar() != '\n');
             choice = getchar();
             while(getchar() != '\n');

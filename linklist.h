@@ -1,5 +1,6 @@
-#include<stdlib.h>
-#include<string.h>
+#include <stdlib.h>
+#include <string.h>
+
 typedef struct _ClientInfo{
   char* id;
   char user[100];

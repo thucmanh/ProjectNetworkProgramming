@@ -26,7 +26,6 @@ void draw(int b[9]) {
 }
 
 int win(const int board[9]) {
-  //determines if a player has won, returns 0 otherwise.
   unsigned wins[8][3] = {{0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}};
   int i;
   for(i = 0; i < 8; ++i) {
@@ -39,12 +38,11 @@ int win(const int board[9]) {
 }
 
 int minimax(int board[9], int player) {
-  //How is the position like for player (their turn) on board?
   int winner = win(board);
   if(winner != 0) return winner*player;
 
   int move = -1;
-  int score = -2;//Losing moves are preferred to no move
+  int score = -2;
   int i;
   for(i = 0; i < 9; ++i) {//For all moves,
     if(board[i] == 0) {//If legal,
@@ -76,7 +74,6 @@ void computerMove(int board[9]) {
       }
     }
   }
-  //returns a score based on minimax tree at a given node.
   board[move] = 1;
 }
 
@@ -85,8 +82,6 @@ void player_move(int board[9]) {
   do {
     printf("\033[0;37m");
     start:
-    // printf("\nInput move ([0..8]): ");
-    // scanf("%d", &move);
     printf("\nInput move ([1..9]): ");
     scanf("%d", &move);
     move = move -1;
@@ -114,7 +109,6 @@ void showFunGame(char *user, int player){
 
 int handleTicTacToe( char *user) {
   int board[9] = {0,0,0,0,0,0,0,0,0};
-  //computer squares are 1, player squares are -1.
   printf("Computer: O, You: X\n");
   printf("You want to Play (1)st or (2)nd: ");
   player=0;
